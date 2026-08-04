@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/**
+ * Paleta do Sócrates — escura por padrão (uso de madrugada e antes do pregão).
+ * Tokens em português pra bater com o resto do código.
+ */
+@theme {
+  --color-fundo: #0b0f14;
+  --color-superficie: #131a23;
+  --color-superficie-alta: #1b2531;
+  --color-borda: #24303f;
+
+  --color-texto: #e8eef6;
+  --color-texto-fraco: #8fa3b8;
+
+  --color-marca: #4f9dfd;
+  --color-positivo: #35d07f;
+  --color-negativo: #ff6b6b;
+  --color-atencao: #ffb545;
+  --color-violeta: #a78bfa;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: dark;
+  /* Evita o "pulo" de layout quando a barra de rolagem aparece. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--color-fundo);
+  color: var(--color-texto);
+}
+
+/* Respeita o entalhe do iPhone quando instalado como app. */
+.area-segura {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}

@@ -1,0 +1,477 @@
+// Sócrates — schema multi-tenant.
+// Regra de ouro: TODO modelo de dados do usuário carrega `userId`.
+// A única exceção é RegraApex, que é regra global da corretora (igual pra todo mundo).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Conexão via pooler do Neon — usada pelo app em produção (serverless).
+  url       = env("DATABASE_URL")
+  // Conexão direta — usada por `prisma db push` / migrate, que não funcionam via pooler.
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// NÚCLEO — usuário e autenticação (NextAuth)
+// ============================================================
+
+model User {
+  id           String    @id @default(cuid())
+  email        String?   @unique
+  nome         String?
+  imagem       String?
+  // Amarra a conta do Telegram ao mesmo usuário do dashboard web.
+  telegramId   String?   @unique
+  timezone     String    @default("America/Sao_Paulo")
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+
+  preferencia     Preferencia?
+  tarefas         Tarefa[]
+  execucoes       TarefaExecucao[]
+  compromissos    Compromisso[]
+  frases          Frase[]
+  cobrancas       Cobranca[]
+  contasApex      ContaApex[]
+  pregoes         PregaoApex[]
+  saques          SaqueApex[]
+  briefings       Briefing[]
+  mensagens       MensagemLog[]
+
+  @@map("usuarios")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("contas_auth")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessoes")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("tokens_verificacao")
+}
+
+/// Ajustes por usuário: horários dos disparos automáticos e tom das mensagens.
+model Preferencia {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  horaBriefing        String  @default("09:00") // Módulo 4
+  horaFechamentoDia   String  @default("22:00") // Módulo 3: hora de checar tarefas não feitas
+  briefingAtivo       Boolean @default(true)
+  cobrancaAtiva       Boolean @default(true)
+  intensidadeCobranca Int     @default(3) // 1 = leve … 5 = sem dó
+  tickersBriefing     String[] @default(["NQ=F", "MNQ=F"])
+
+  atualizadoEm DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("preferencias")
+}
+
+// ============================================================
+// MÓDULO 1 — Tarefas rotineiras
+// ============================================================
+
+enum Recorrencia {
+  DIARIA
+  DIAS_SEMANA
+  SEMANAL
+  MENSAL
+  UNICA
+}
+
+model Tarefa {
+  id        String      @id @default(cuid())
+  userId    String
+  titulo    String
+  descricao String?
+
+  recorrencia Recorrencia @default(DIARIA)
+  /// Usado quando recorrencia = DIAS_SEMANA. 0 = domingo … 6 = sábado.
+  diasSemana  Int[]       @default([])
+  /// Usado quando recorrencia = MENSAL (1-31).
+  diaDoMes    Int?
+  /// "HH:mm" no fuso do usuário. Null = "qualquer hora do dia".
+  horaAlvo    String?
+
+  ativa    Boolean  @default(true)
+  ordem    Int      @default(0)
+  criadaEm DateTime @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  execucoes TarefaExecucao[]
+
+  @@index([userId, ativa])
+  @@map("tarefas")
+}
+
+/// Um registro por (tarefa, dia). É o "check" do dia.
+model TarefaExecucao {
+  id       String    @id @default(cuid())
+  userId   String
+  tarefaId String
+  /// Dia de referência no fuso do usuário (sem hora).
+  data     DateTime  @db.Date
+  feita    Boolean   @default(false)
+  feitaEm  DateTime?
+  /// Marca que o Módulo 3 já cobrou este dia (evita cobrar duas vezes).
+  cobradaEm DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tarefa Tarefa @relation(fields: [tarefaId], references: [id], onDelete: Cascade)
+
+  @@unique([tarefaId, data])
+  @@index([userId, data])
+  @@map("tarefas_execucoes")
+}
+
+// ============================================================
+// MÓDULO 2 — Compromissos avulsos (secretária particular)
+// ============================================================
+
+enum StatusCompromisso {
+  /// A IA extraiu mas ficou ambíguo — esperando você confirmar no Telegram.
+  AGUARDANDO_CONFIRMACAO
+  CONFIRMADO
+  CONCLUIDO
+  CANCELADO
+  /// Passou da hora e não foi marcado como concluído.
+  PERDIDO
+}
+
+enum OrigemEntrada {
+  TELEGRAM_TEXTO
+  TELEGRAM_AUDIO
+  WEB
+}
+
+model Compromisso {
+  id     String @id @default(cuid())
+  userId String
+
+  titulo String
+  /// Momento do compromisso, sempre gravado em UTC.
+  quando DateTime
+  local  String?
+  notas  String?
+
+  status StatusCompromisso @default(AGUARDANDO_CONFIRMACAO)
+  origem OrigemEntrada     @default(TELEGRAM_TEXTO)
+
+  /// Rastro da extração: o que você mandou e o que a IA entendeu.
+  textoOriginal String?
+  transcricao   String?
+  confiancaIa   Float?
+
+  lembreteMinutosAntes Int       @default(0)
+  alertaEnviadoEm      DateTime?
+  concluidoEm          DateTime?
+  cobradoEm            DateTime?
+
+  criadoEm DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, quando])
+  @@index([status, quando])
+  @@map("compromissos")
+}
+
+// ============================================================
+// MÓDULO 3 — Motivacional
+// ============================================================
+
+enum CategoriaFrase {
+  BIBLICA
+  PENSADOR
+  TRADING
+  PROPRIA
+}
+
+/// Banco de frases fixas. userId null = frase global (vem no seed, serve pra todo mundo).
+model Frase {
+  id        String         @id @default(cuid())
+  userId    String?
+  texto     String
+  autor     String?
+  categoria CategoriaFrase @default(PENSADOR)
+  ativa     Boolean        @default(true)
+  criadaEm  DateTime       @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, ativa])
+  @@map("frases")
+}
+
+enum FonteCobranca {
+  IA
+  BANCO
+}
+
+enum AlvoCobranca {
+  TAREFA
+  COMPROMISSO
+  CONTA_APEX
+}
+
+/// Histórico do que o Sócrates já mandou — evita repetir e alimenta o contexto da IA.
+model Cobranca {
+  id     String @id @default(cuid())
+  userId String
+
+  texto     String
+  fonte     FonteCobranca
+  alvoTipo  AlvoCobranca
+  alvoId    String?
+  enviadaEm DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, enviadaEm])
+  @@map("cobrancas")
+}
+
+// ============================================================
+// MÓDULO 4 — Briefing de trader
+// ============================================================
+
+model Briefing {
+  id     String   @id @default(cuid())
+  userId String
+  data   DateTime @db.Date
+
+  /// Texto final que foi (ou vai ser) enviado no Telegram.
+  texto String
+
+  /// Payload cru das fontes (Forex Factory + Yahoo), pra auditar depois.
+  dadosBrutos Json?
+
+  enviadoEm DateTime?
+  criadoEm  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, data])
+  @@map("briefings")
+}
+
+// ============================================================
+// MÓDULO 5 — Gestão de contas Apex Trader Funding
+// ============================================================
+
+enum TamanhoConta {
+  T25K
+  T50K
+  T100K
+  T150K
+}
+
+enum TipoDrawdown {
+  EOD
+  INTRADAY
+}
+
+enum StatusConta {
+  ATIVA
+  /// Bateu as 5 condições — pode pedir saque.
+  LIBERADA_SAQUE
+  PAUSADA
+  /// Estourou o drawdown.
+  VIOLADA
+  /// 6 saques feitos ou encerrada manualmente.
+  ENCERRADA
+}
+
+/// Tabela de regras da Apex — parametrizada, NUNCA hardcoded no código.
+/// Não tem userId de propósito: é regra da corretora, igual pra todos.
+/// Versionada por vigência: quando a Apex mudar as regras, insere linha nova
+/// com vigenteDe novo em vez de editar a antiga (contas velhas mantêm a regra antiga).
+model RegraApex {
+  id      String       @id @default(cuid())
+  tamanho TamanhoConta
+  tipo    TipoDrawdown
+
+  saldoInicial        Decimal @db.Decimal(12, 2)
+  diasQualificadosMin Int
+  /// Lucro mínimo pra um dia contar como "qualificado".
+  lucroMinDia         Decimal @db.Decimal(12, 2)
+  /// Perda máxima acumulada permitida.
+  drawdownLimite      Decimal @db.Decimal(12, 2)
+  /// Saldo absoluto do Safety Net.
+  safetyNet           Decimal @db.Decimal(12, 2)
+  /// Saldo absoluto mínimo pra poder solicitar saque.
+  saldoMinSaque       Decimal @db.Decimal(12, 2)
+  saqueMinimo         Decimal @db.Decimal(12, 2) @default(500)
+  maxSaques           Int     @default(6)
+  /// Nenhum dia sozinho pode ser >= este % do lucro total desde o último saque aprovado.
+  consistenciaPct     Decimal @db.Decimal(5, 2)  @default(50)
+
+  vigenteDe  DateTime
+  vigenteAte DateTime?
+  fonte      String?
+
+  contas ContaApex[]
+
+  @@unique([tamanho, tipo, vigenteDe])
+  @@map("regras_apex")
+}
+
+model ContaApex {
+  id      String @id @default(cuid())
+  userId  String
+  apelido String
+
+  tamanho TamanhoConta
+  tipo    TipoDrawdown
+  regraId String
+
+  saldoInicial Decimal  @db.Decimal(12, 2)
+  saldoAtual   Decimal  @db.Decimal(12, 2)
+  iniciadaEm   DateTime
+
+  status StatusConta @default(ATIVA)
+
+  /// Replicador: uma conta mestre e as réplicas que copiam os trades dela.
+  ehMestre                Boolean @default(false)
+  contaMestreId           String?
+  multiplicadorReplicador Decimal @db.Decimal(6, 3) @default(1)
+
+  observacoes String?
+  criadaEm    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  regra       RegraApex   @relation(fields: [regraId], references: [id])
+  contaMestre ContaApex?  @relation("Replicador", fields: [contaMestreId], references: [id], onDelete: SetNull)
+  replicas    ContaApex[] @relation("Replicador")
+
+  pregoes PregaoApex[]
+  saques  SaqueApex[]
+
+  @@index([userId, status])
+  @@map("contas_apex")
+}
+
+/// Resultado de um pregão numa conta. Um registro por (conta, dia).
+model PregaoApex {
+  id      String   @id @default(cuid())
+  userId  String
+  contaId String
+  data    DateTime @db.Date
+
+  /// Resultado do dia em USD. Pode ser negativo.
+  resultado Decimal @db.Decimal(12, 2)
+  /// Bateu o lucro mínimo do dia? Calculado na hora de salvar.
+  qualificado Boolean @default(false)
+  /// Saldo da conta ao fim deste pregão (snapshot, evita recalcular a série toda).
+  saldoApos Decimal @db.Decimal(12, 2)
+
+  notas    String?
+  criadoEm DateTime @default(now())
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conta ContaApex @relation(fields: [contaId], references: [id], onDelete: Cascade)
+
+  @@unique([contaId, data])
+  @@index([userId, data])
+  @@map("pregoes_apex")
+}
+
+enum StatusSaque {
+  SOLICITADO
+  APROVADO
+  NEGADO
+  PAGO
+}
+
+model SaqueApex {
+  id      String @id @default(cuid())
+  userId  String
+  contaId String
+
+  /// 1 a 6 (a Apex encerra a conta depois do 6º).
+  numero Int
+  valor  Decimal @db.Decimal(12, 2)
+
+  status       StatusSaque @default(SOLICITADO)
+  solicitadoEm DateTime    @default(now())
+  aprovadoEm   DateTime?
+  pagoEm       DateTime?
+  notas        String?
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conta ContaApex @relation(fields: [contaId], references: [id], onDelete: Cascade)
+
+  @@unique([contaId, numero])
+  @@index([userId])
+  @@map("saques_apex")
+}
+
+// ============================================================
+// INFRA — log de mensagens do Telegram
+// ============================================================
+
+enum DirecaoMensagem {
+  ENTRADA
+  SAIDA
+}
+
+/// Log cru de tudo que passa pelo Telegram. Serve pra debug e pra dar
+/// contexto/memória curta pra IA.
+model MensagemLog {
+  id     String @id @default(cuid())
+  userId String
+
+  direcao   DirecaoMensagem
+  texto     String
+  origem    OrigemEntrada   @default(TELEGRAM_TEXTO)
+  /// Intenção detectada pelo roteador (ex: "novo_compromisso", "resultado_pregao").
+  intencao  String?
+  payload   Json?
+  criadoEm  DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, criadoEm])
+  @@map("mensagens_log")
+}
