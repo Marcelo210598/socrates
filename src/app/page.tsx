@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { obterUsuarioAtual } from "@/lib/auth/usuario";
+import { listarTarefasDoDia } from "@/lib/tarefas";
+import { hojeNoFuso, minutosDoDia } from "@/lib/datas";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +61,8 @@ function saudacao(hora: number): string {
 
 export default async function Home() {
   const agora = new Date();
-  const fuso = "America/Sao_Paulo";
+  const usuario = await obterUsuarioAtual();
+  const fuso = usuario.timezone;
 
   const hora = Number(
     new Intl.DateTimeFormat("pt-BR", {
@@ -86,6 +90,31 @@ export default async function Home() {
   const inicioDoAno = Date.UTC(agora.getUTCFullYear(), 0, 0);
   const diaDoAno = Math.floor((agora.getTime() - inicioDoAno) / 86_400_000);
   const frase = frases.length > 0 ? frases[diaDoAno % frases.length] : null;
+
+  // Andamento real do Módulo 1, mostrado no cartão de tarefas.
+  const tarefasHoje = await listarTarefasDoDia({
+    userId: usuario.id,
+    data: hojeNoFuso(fuso, agora),
+    agoraEmMinutos: minutosDoDia(fuso, agora),
+  });
+
+  const feitas = tarefasHoje.filter((t) => t.feita).length;
+  const atrasadas = tarefasHoje.filter((t) => t.atrasada).length;
+
+  const estadoTarefas =
+    tarefasHoje.length === 0
+      ? null
+      : feitas === tarefasHoje.length
+        ? { texto: "Tudo feito hoje", classe: "bg-positivo/15 text-positivo" }
+        : atrasadas > 0
+          ? {
+              texto: `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`,
+              classe: "bg-atencao/15 text-atencao",
+            }
+          : {
+              texto: `${feitas}/${tarefasHoje.length}`,
+              classe: "bg-superficie-alta text-texto-fraco",
+            };
 
   return (
     <div className="relative flex-1">
@@ -136,7 +165,16 @@ export default async function Home() {
 
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{m.nome}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="font-semibold">{m.nome}</span>
+                      {m.href === "/tarefas" && estadoTarefas && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${estadoTarefas.classe}`}
+                        >
+                          {estadoTarefas.texto}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-texto-fraco transition-transform duration-200 group-hover:translate-x-1">
                       →
                     </span>

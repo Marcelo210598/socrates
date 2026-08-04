@@ -1,6 +1,6 @@
 # Sócrates — Progresso
 
-## Última atualização: 03/08/2026
+## Última atualização: 04/08/2026
 
 ## 📌 Visão Geral
 
@@ -8,7 +8,7 @@ Assistente particular via Telegram (texto e áudio) + dashboard PWA. Cinco módu
 
 Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deploy planejado: Vercel (app) + Railway (agendador de cron).
 
-**Status:** fundação 100%, módulos 0%. Rodando em `localhost:3000`.
+**Status:** fundação 100%. **Módulo 1 (Tarefas) pronto na web.** Demais módulos: 0%. Rodando em `localhost:3000`.
 
 ## ✅ Concluído
 
@@ -24,6 +24,16 @@ Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deplo
 - `/api/saude` — diagnóstico de banco e chaves
 - Repo git próprio — commit `4083e16`
 - `tsc --noEmit` limpo, `eslint` limpo
+
+### Módulo 1 — Tarefas rotineiras (04/08) ✅
+
+- `src/lib/datas.ts` — fusos; `hojeNoFuso()` grava o dia de São Paulo como meia-noite UTC
+- `src/lib/tarefas.ts` — regras puras: cai hoje?, listar do dia, marcar, descrever recorrência
+- `src/app/tarefas/acoes.ts` — server actions com Zod (criar, marcar, arquivar)
+- Lista com check otimista + formulário (recorrência diária / dias da semana / mensal, horário opcional)
+- Barra de progresso do dia e badge de **atrasada** automático
+- Home mostra o andamento real das tarefas
+- Validado no navegador de ponta a ponta e conferido no banco
 
 ## 🚧 Em progresso
 
@@ -62,15 +72,21 @@ Nenhum deles impede começar o Módulo 1.
 
 ## 📋 Próximos passos
 
-1. Aprovar a lista de comandos do bot
+**Não dependem de chave nenhuma:**
+
+1. **Módulo 5** — Contas Apex (o motor de cálculo já está pronto; falta tela e cadastro de conta/pregão)
+
+**Dependem de chave:**
+
 2. Criar o bot no @BotFather → `TELEGRAM_BOT_TOKEN`
-3. Login no dashboard (NextAuth + Google) e vínculo `telegramId` → `User`
-4. **Módulo 1** — Tarefas rotineiras (o mais simples; estabelece o padrão)
-5. **Módulo 2** — Compromissos (IA + transcrição de áudio)
-6. **Módulo 3** — Motivacional
-7. **Módulo 5** — Contas Apex
-8. **Módulo 4** — Briefing
-9. Worker do Railway + deploy na Vercel
+3. **Módulo 2** — Compromissos (precisa de `ANTHROPIC_API_KEY` + `GROQ_API_KEY`)
+4. **Módulo 3** — Motivacional
+5. **Módulo 4** — Briefing
+
+**Também pendente:**
+
+6. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário
+7. Worker do Railway + deploy na Vercel
 
 ## 📚 Dependências principais
 

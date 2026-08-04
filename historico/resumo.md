@@ -38,13 +38,23 @@ IA = **Claude API**. Transcrição de áudio = **Groq Whisper** (a Claude API n�
 | Data | O que rolou |
 |---|---|
 | [03/08/2026](2026-08-03.md) | Fundação criada: schema dos 5 módulos, banco no ar no Neon, motor de cálculo da Apex, PWA, esqueleto do bot, home. Commit `4083e16`. |
+| [04/08/2026](2026-08-04.md) | **Módulo 1 (Tarefas rotineiras) pronto na web** e validado no navegador: criar, marcar, arquivar, recorrência, atraso automático, barra de progresso. |
+
+## Padrão de código dos módulos
+
+Estabelecido no Módulo 1, os outros devem repetir:
+
+1. **Lib de regras pura** (`src/lib/<modulo>.ts`) — só recebe e devolve dados, não sabe de UI
+2. **Server actions** (`src/app/<modulo>/acoes.ts`) — validação com Zod, sempre conferindo que o registro é do `userId` atual
+3. **Componente cliente** com atualização otimista
+4. **Página servidor** que junta tudo
 
 ## Onde parou
 
-Fundação 100%, módulos 0%. Rodando em `localhost:3000`.
+Fundação 100%. **Módulo 1: 100% na web** (falta o acesso pelo Telegram). Demais módulos: 0%.
 
-**Próximo passo:** aprovar a lista de comandos do bot (está no snapshot de 03/08) e começar o **Módulo 1 — Tarefas rotineiras**.
+**Próximo passo sugerido:** **Módulo 5 (Contas Apex)** — é o de maior valor e **não depende de chave nenhuma**, já que o motor de cálculo está pronto desde 03/08. Falta a tela e o cadastro de conta/pregão.
 
-**Bloqueios leves:** falta o `TELEGRAM_BOT_TOKEN` e a `ANTHROPIC_API_KEY`. Nenhum dos dois impede começar o Módulo 1.
+**Bloqueios:** Módulo 2 precisa de `ANTHROPIC_API_KEY` + `GROQ_API_KEY`; o bot precisa do `TELEGRAM_BOT_TOKEN`.
 
 **Pendência de dado:** os números de drawdown da Apex 25K e 50K não fecham com o Safety Net informado — Marcelo vai conferir no dashboard dele. Correção é editar `prisma/seed.ts` e rodar `npm run db:seed`.
