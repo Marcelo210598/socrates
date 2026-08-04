@@ -5,7 +5,13 @@
  * `TarefaExecucao.data`) representa um DIA no fuso do usuário, gravado como
  * meia-noite UTC daquele dia. Isso evita o clássico "a tarefa de segunda
  * apareceu no domingo" quando o servidor roda em outro fuso.
+ *
+ * ⚠️ Exibir um `@db.Date`? Sempre com `timeZone: "UTC"` fixo (veja
+ * `diaCurto` mais abaixo) — nunca `Intl.DateTimeFormat` sem fuso. Sem isso,
+ * a formatação usa o fuso do PROCESSO, e como o Brasil está atrás de UTC,
+ * a data cai um dia pra trás. Já mordeu a gente uma vez (04/08).
  */
+import { fromZonedTime } from "date-fns-tz";
 
 export const FUSO_PADRAO = "America/Sao_Paulo";
 
@@ -58,6 +64,17 @@ export function horaParaMinutos(hora: string | null | undefined): number | null 
   if (h > 23 || m > 59) return null;
 
   return h * 60 + m;
+}
+
+/**
+ * Combina uma data + hora LOCAIS (num fuso) num instante UTC de verdade.
+ * Ex.: horaLocalParaUtc("2026-08-05", "15:00", "America/Sao_Paulo") →
+ * 2026-08-05T18:00:00.000Z. É o que vai em campos `DateTime` que representam
+ * um MOMENTO (como `Compromisso.quando`) — diferente de `@db.Date`, que
+ * representa só o dia.
+ */
+export function horaLocalParaUtc(data: string, hora: string, fuso: string = FUSO_PADRAO): Date {
+  return fromZonedTime(`${data}T${hora}:00`, fuso);
 }
 
 /**
@@ -115,6 +132,17 @@ export function diaCurto(data: Date): string {
     month: "2-digit",
     timeZone: "UTC",
   }).format(data);
+}
+
+/** Ex.: "05/08 15:00" — pra exibir um instante real (`DateTime`), não um `@db.Date`. */
+export function dataHoraCurta(instante: Date, fuso: string = FUSO_PADRAO): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: fuso,
+  }).format(instante);
 }
 
 /** Ex.: "segunda-feira, 04 de agosto". */

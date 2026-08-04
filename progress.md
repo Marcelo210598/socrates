@@ -8,7 +8,7 @@ Assistente particular via Telegram (texto e áudio) + dashboard PWA. Cinco módu
 
 Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deploy planejado: Vercel (app) + Railway (agendador de cron).
 
-**Status:** fundação 100%. **Módulos 1 (Tarefas) e 5 (Contas Apex) prontos na web.** Módulos 2, 3, 4: 0%. Rodando em `localhost:3000`.
+**Status:** fundação 100%. **Módulos 1 (Tarefas), 2 (Compromissos) e 5 (Contas Apex) prontos na web.** Módulos 3, 4: 0%. Rodando em `localhost:3000`. Repo: `github.com/Marcelo210598/socrates`.
 
 ## ✅ Concluído
 
@@ -46,6 +46,19 @@ Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deplo
   1. Data de pregão aparecia um dia antes — `Intl.DateTimeFormat` sem `timeZone: "UTC"` explícito usa o fuso do processo (Brasil = UTC-3) e subtrai um dia de qualquer `@db.Date`. Corrigido com `diaCurto()` centralizado.
   2. Confirmação de saque podia mostrar o número errado (ex.: "#2" pra um saque gravado como #1) — o `revalidatePath` da server action atualiza a prop antes do `setFeito` aplicar. Corrigido capturando o número em estado local no início do fluxo.
 
+### Módulo 2 — Compromissos avulsos (04/08) ✅
+
+- `src/lib/ia/anthropic.ts` — singleton do cliente Claude
+- `src/lib/ia/compromissos.ts` — `extrairCompromisso()` com **tool-use forçado** (schema fixo, não "responda em JSON"); prompt de sistema recebe o momento atual no fuso do usuário pra resolver data/hora relativa
+- `src/lib/ia/transcricao.ts` — `transcreverAudio()` via Groq Whisper large v3
+- `src/lib/datas.ts` ganhou `horaLocalParaUtc()` (combina data+hora locais num instante UTC de verdade) e `dataHoraCurta()`
+- `POST /api/compromissos/interpretar` — texto ou áudio → devolve rascunho, **sem persistir**
+- Server actions: confirmar (só aí persiste), concluir, cancelar
+- `NovoCompromisso.tsx` — caixa de entrada com texto **e gravação de áudio real** (MediaRecorder), card de revisão editável
+- `/compromissos` + badge na home + nav da barra de topo completa (4 módulos)
+- **Validado com chamadas reais**: áudio sintético (`say` do macOS) → Groq transcreveu certo → Claude extraiu "amanhã às três da tarde" → `2026-08-05T15:00` correto; caso ambíguo disparou pergunta de volta no tom certo; fluxo completo testado no navegador e conferido no banco (fuso convertido certinho)
+- Gravação pelo microfone do navegador não foi possível automatizar (sem mic real no ambiente de teste) — mesma rota validada via curl com áudio real, mas vale um teste manual no celular/PC
+
 ## 🚧 Em progresso
 
 - **Lista de comandos do bot apresentada, aguardando "pode ir" do Marcelo** (está detalhada em `historico/2026-08-03.md`)
@@ -75,24 +88,21 @@ Pela mecânica da Apex, `Safety Net = saldoInicial + drawdown + 100`:
 
 ## 🔧 Configurações importantes
 
-`.env` (fora do git). Preenchido: `DATABASE_URL`, `DIRECT_URL` (Neon `neondb`, sa-east-1).
+`.env` (fora do git). Preenchido: `DATABASE_URL`, `DIRECT_URL` (Neon), **`ANTHROPIC_API_KEY`** e **`GROQ_API_KEY`** (chaves reais, testadas).
 
-**Faltando:** `ANTHROPIC_API_KEY` (a do vida-de-trader só existe na Vercel), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `GROQ_API_KEY`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CRON_SECRET`.
+**Faltando:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CRON_SECRET`.
 
-Nenhum deles impede começar o Módulo 1.
+## 🐙 Git remoto
+
+`github.com/Marcelo210598/socrates` — configurado como `origin` (04/08). Repo criado vazio pelo Marcelo.
 
 ## 📋 Próximos passos
 
-**Todos dependem de chave agora:**
-
-1. Criar o bot no @BotFather → `TELEGRAM_BOT_TOKEN`
-2. **Módulo 2** — Compromissos (precisa de `ANTHROPIC_API_KEY` + `GROQ_API_KEY`)
-3. **Módulo 3** — Motivacional
-4. **Módulo 4** — Briefing (precisa de `ANTHROPIC_API_KEY`)
-
-**Também pendente:**
-
-5. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário
+1. **Módulo 3** — Motivacional (não depende de chave nova; já tem tarefas, compromissos e banco de frases prontos)
+2. **Módulo 4** — Briefing (decidir fonte do calendário econômico e do candle de referência)
+3. Bot do Telegram → `TELEGRAM_BOT_TOKEN` (@BotFather)
+4. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário
+5. Testar a gravação de áudio pelo microfone de verdade (celular ou PC)
 6. Worker do Railway + deploy na Vercel
 
 ## 📚 Dependências principais

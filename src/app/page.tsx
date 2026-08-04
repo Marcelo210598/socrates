@@ -3,7 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { obterUsuarioAtual } from "@/lib/auth/usuario";
 import { listarTarefasDoDia } from "@/lib/tarefas";
 import { listarContasComDiagnostico } from "@/lib/apex/contas";
-import { hojeNoFuso, minutosDoDia } from "@/lib/datas";
+import { listarProximosCompromissos } from "@/lib/compromissos";
+import {
+  dataHoraCurta,
+  dataParaInput,
+  horaLocalParaUtc,
+  hojeNoFuso,
+  minutosDoDia,
+} from "@/lib/datas";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +37,7 @@ const MODULOS: Modulo[] = [
   {
     href: "/compromissos",
     nome: "Compromissos",
-    resumo: "Marque por texto ou áudio no Telegram",
+    resumo: "Fala com o Sócrates por texto ou áudio",
     icone: "◷",
     classeIcone: "bg-marca/15 text-marca",
     classeHover: "hover:border-marca/50",
@@ -135,8 +142,33 @@ export default async function Home() {
             classe: "bg-superficie-alta text-texto-fraco",
           };
 
+  // Andamento real do Módulo 2, mostrado no cartão de compromissos.
+  const proximosCompromissos = await listarProximosCompromissos(usuario.id, agora);
+
+  const hojeStr = dataParaInput(hojeNoFuso(fuso, agora));
+  const amanhaStr = dataParaInput(new Date(hojeNoFuso(fuso, agora).getTime() + 86_400_000));
+  const inicioHoje = horaLocalParaUtc(hojeStr, "00:00", fuso);
+  const inicioAmanha = horaLocalParaUtc(amanhaStr, "00:00", fuso);
+  const compromissosHoje = proximosCompromissos.filter(
+    (c) => c.quando >= inicioHoje && c.quando < inicioAmanha,
+  );
+
+  const estadoCompromissos =
+    proximosCompromissos.length === 0
+      ? null
+      : compromissosHoje.length > 0
+        ? {
+            texto: `${compromissosHoje.length} hoje`,
+            classe: "bg-marca/15 text-marca",
+          }
+        : {
+            texto: `próx. ${dataHoraCurta(proximosCompromissos[0].quando, fuso)}`,
+            classe: "bg-superficie-alta text-texto-fraco",
+          };
+
   const badgesPorModulo: Record<string, { texto: string; classe: string } | null> = {
     "/tarefas": estadoTarefas,
+    "/compromissos": estadoCompromissos,
     "/apex": estadoApex,
   };
 

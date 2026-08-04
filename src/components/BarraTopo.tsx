@@ -12,26 +12,41 @@ export function BarraTopo() {
           <span className="text-[15px] font-semibold tracking-tight">Sócrates</span>
         </Link>
 
-        <nav className="flex items-center gap-1">
-          <Link
-            href="/apex"
-            className="rounded-lg px-3 py-1.5 text-sm text-texto-fraco transition-colors hover:bg-superficie hover:text-texto"
-          >
-            Apex
-          </Link>
-          <Link
-            href="/mercado"
-            className="rounded-lg px-3 py-1.5 text-sm text-texto-fraco transition-colors hover:bg-superficie hover:text-texto"
-          >
-            Mercado
-          </Link>
+        <div className="flex items-center gap-2">
+          <nav className="hidden items-center gap-1 sm:flex">
+            <Link
+              href="/tarefas"
+              className="rounded-lg px-3 py-1.5 text-sm text-texto-fraco transition-colors hover:bg-superficie hover:text-texto"
+            >
+              Tarefas
+            </Link>
+            <Link
+              href="/compromissos"
+              className="rounded-lg px-3 py-1.5 text-sm text-texto-fraco transition-colors hover:bg-superficie hover:text-texto"
+            >
+              Compromissos
+            </Link>
+            <Link
+              href="/apex"
+              className="rounded-lg px-3 py-1.5 text-sm text-texto-fraco transition-colors hover:bg-superficie hover:text-texto"
+            >
+              Apex
+            </Link>
+            <Link
+              href="/mercado"
+              className="rounded-lg px-3 py-1.5 text-sm text-texto-fraco transition-colors hover:bg-superficie hover:text-texto"
+            >
+              Mercado
+            </Link>
+          </nav>
+
           <span
-            className="ml-2 grid size-8 place-items-center rounded-full bg-superficie-alta text-sm font-semibold text-texto-fraco ring-1 ring-borda"
+            className="grid size-8 place-items-center rounded-full bg-superficie-alta text-sm font-semibold text-texto-fraco ring-1 ring-borda"
             title="Marcelo"
           >
             M
           </span>
-        </nav>
+        </div>
       </div>
     </header>
   );
