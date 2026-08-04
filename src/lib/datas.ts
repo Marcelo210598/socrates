@@ -60,6 +60,37 @@ export function horaParaMinutos(hora: string | null | undefined): number | null 
   return h * 60 + m;
 }
 
+/**
+ * Converte o valor de um `<input type="date">` ("YYYY-MM-DD") pro formato
+ * que os campos `@db.Date` esperam: meia-noite UTC daquele dia calendário.
+ * Diferente de `hojeNoFuso`, aqui o dia já foi escolhido pelo usuário —
+ * não há fuso pra converter, só parsear sem deixar o `new Date()` do
+ * JavaScript reinterpretar a string no fuso local do processo.
+ */
+export function diaDoInputParaData(valor: string): Date | null {
+  const casa = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor.trim());
+  if (!casa) return null;
+
+  const [, anoStr, mesStr, diaStr] = casa;
+  const data = new Date(Date.UTC(Number(anoStr), Number(mesStr) - 1, Number(diaStr)));
+
+  // Confere que não veio algo tipo "2026-02-31" (JS "normaliza" pra março).
+  if (
+    data.getUTCFullYear() !== Number(anoStr) ||
+    data.getUTCMonth() !== Number(mesStr) - 1 ||
+    data.getUTCDate() !== Number(diaStr)
+  ) {
+    return null;
+  }
+
+  return data;
+}
+
+/** Formato "YYYY-MM-DD" de uma data `@db.Date` — pro `value` de um input. */
+export function dataParaInput(data: Date): string {
+  return data.toISOString().slice(0, 10);
+}
+
 /** Dia da semana (0 = domingo … 6 = sábado) de uma data `@db.Date`. */
 export function diaDaSemana(data: Date): number {
   return data.getUTCDay();
@@ -68,6 +99,22 @@ export function diaDaSemana(data: Date): number {
 /** Dia do mês (1-31) de uma data `@db.Date`. */
 export function diaDoMes(data: Date): number {
   return data.getUTCDate();
+}
+
+/**
+ * Formata um valor `@db.Date` (dia calendário gravado como meia-noite UTC).
+ *
+ * ⚠️ SEMPRE use isto (nunca `Intl.DateTimeFormat` sem `timeZone`) pra exibir
+ * um `@db.Date`. Sem fixar o fuso em UTC, a formatação usa o fuso do
+ * processo — e como o Brasil está atrás de UTC, "2026-08-04T00:00:00Z"
+ * aparece como "03/08". O bug é silencioso: só aparece rodando no fuso certo.
+ */
+export function diaCurto(data: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "UTC",
+  }).format(data);
 }
 
 /** Ex.: "segunda-feira, 04 de agosto". */

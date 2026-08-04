@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { obterUsuarioAtual } from "@/lib/auth/usuario";
 import { listarTarefasDoDia } from "@/lib/tarefas";
+import { listarContasComDiagnostico } from "@/lib/apex/contas";
 import { hojeNoFuso, minutosDoDia } from "@/lib/datas";
 
 export const dynamic = "force-dynamic";
@@ -116,6 +117,29 @@ export default async function Home() {
               classe: "bg-superficie-alta text-texto-fraco",
             };
 
+  // Andamento real do Módulo 5, mostrado no cartão de contas Apex.
+  const contasApex = await listarContasComDiagnostico(usuario.id);
+  const contasAtivas = contasApex.filter((i) => i.conta.status !== "ENCERRADA");
+  const contasLiberadas = contasAtivas.filter((i) => i.diagnostico.liberadaParaSaque);
+
+  const estadoApex =
+    contasAtivas.length === 0
+      ? null
+      : contasLiberadas.length > 0
+        ? {
+            texto: `${contasLiberadas.length} ${contasLiberadas.length === 1 ? "liberada" : "liberadas"}`,
+            classe: "bg-positivo/15 text-positivo",
+          }
+        : {
+            texto: `${contasAtivas.length} ${contasAtivas.length === 1 ? "ativa" : "ativas"}`,
+            classe: "bg-superficie-alta text-texto-fraco",
+          };
+
+  const badgesPorModulo: Record<string, { texto: string; classe: string } | null> = {
+    "/tarefas": estadoTarefas,
+    "/apex": estadoApex,
+  };
+
   return (
     <div className="relative flex-1">
       {/* Brilho de fundo: dá profundidade sem competir com o conteúdo. */}
@@ -167,11 +191,11 @@ export default async function Home() {
                   <span className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-2">
                       <span className="font-semibold">{m.nome}</span>
-                      {m.href === "/tarefas" && estadoTarefas && (
+                      {badgesPorModulo[m.href] && (
                         <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${estadoTarefas.classe}`}
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${badgesPorModulo[m.href]!.classe}`}
                         >
-                          {estadoTarefas.texto}
+                          {badgesPorModulo[m.href]!.texto}
                         </span>
                       )}
                     </span>

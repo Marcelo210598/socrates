@@ -8,7 +8,7 @@ Assistente particular via Telegram (texto e áudio) + dashboard PWA. Cinco módu
 
 Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deploy planejado: Vercel (app) + Railway (agendador de cron).
 
-**Status:** fundação 100%. **Módulo 1 (Tarefas) pronto na web.** Demais módulos: 0%. Rodando em `localhost:3000`.
+**Status:** fundação 100%. **Módulos 1 (Tarefas) e 5 (Contas Apex) prontos na web.** Módulos 2, 3, 4: 0%. Rodando em `localhost:3000`.
 
 ## ✅ Concluído
 
@@ -34,6 +34,17 @@ Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deplo
 - Barra de progresso do dia e badge de **atrasada** automático
 - Home mostra o andamento real das tarefas
 - Validado no navegador de ponta a ponta e conferido no banco
+
+### Módulo 5 — Contas Apex (04/08) ✅
+
+- `src/lib/apex/rotulos.ts` — textos de exibição dos enums
+- `src/lib/apex/contas.ts` — liga o banco ao motor de cálculo: `regraVigente()`, `listarContasComDiagnostico()`, `criarConta()`, `lancarPregao()` (upsert por conta+dia), `registrarSaque()`, `sincronizarCache()`
+- `/apex` — painel geral com estatísticas e cartões; `/apex/[id]` — detalhe com checklist das 5 condições, formulário de pregão, botão de saque, histórico
+- Home ganhou o badge real de contas Apex
+- **Validado ponta a ponta:** criou conta, lançou 5 pregões, a consistência bloqueou um dia desproporcional (89,3%) e depois liberou (47,2%), drawdown congelou certo, saque registrado
+- **2 bugs achados e corrigidos no navegador:**
+  1. Data de pregão aparecia um dia antes — `Intl.DateTimeFormat` sem `timeZone: "UTC"` explícito usa o fuso do processo (Brasil = UTC-3) e subtrai um dia de qualquer `@db.Date`. Corrigido com `diaCurto()` centralizado.
+  2. Confirmação de saque podia mostrar o número errado (ex.: "#2" pra um saque gravado como #1) — o `revalidatePath` da server action atualiza a prop antes do `setFeito` aplicar. Corrigido capturando o número em estado local no início do fluxo.
 
 ## 🚧 Em progresso
 
@@ -72,21 +83,17 @@ Nenhum deles impede começar o Módulo 1.
 
 ## 📋 Próximos passos
 
-**Não dependem de chave nenhuma:**
+**Todos dependem de chave agora:**
 
-1. **Módulo 5** — Contas Apex (o motor de cálculo já está pronto; falta tela e cadastro de conta/pregão)
-
-**Dependem de chave:**
-
-2. Criar o bot no @BotFather → `TELEGRAM_BOT_TOKEN`
-3. **Módulo 2** — Compromissos (precisa de `ANTHROPIC_API_KEY` + `GROQ_API_KEY`)
-4. **Módulo 3** — Motivacional
-5. **Módulo 4** — Briefing
+1. Criar o bot no @BotFather → `TELEGRAM_BOT_TOKEN`
+2. **Módulo 2** — Compromissos (precisa de `ANTHROPIC_API_KEY` + `GROQ_API_KEY`)
+3. **Módulo 3** — Motivacional
+4. **Módulo 4** — Briefing (precisa de `ANTHROPIC_API_KEY`)
 
 **Também pendente:**
 
-6. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário
-7. Worker do Railway + deploy na Vercel
+5. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário
+6. Worker do Railway + deploy na Vercel
 
 ## 📚 Dependências principais
 

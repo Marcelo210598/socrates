@@ -39,6 +39,7 @@ IA = **Claude API**. Transcrição de áudio = **Groq Whisper** (a Claude API n�
 |---|---|
 | [03/08/2026](2026-08-03.md) | Fundação criada: schema dos 5 módulos, banco no ar no Neon, motor de cálculo da Apex, PWA, esqueleto do bot, home. Commit `4083e16`. |
 | [04/08/2026](2026-08-04.md) | **Módulo 1 (Tarefas rotineiras) pronto na web** e validado no navegador: criar, marcar, arquivar, recorrência, atraso automático, barra de progresso. |
+| [04/08/2026 parte 2](2026-08-04-parte2.md) | **Módulo 5 (Contas Apex) pronto na web** e validado ponta a ponta (criou conta, lançou 5 pregões, consistência bloqueou e depois liberou, saque registrado). Achou e corrigiu 2 bugs reais: exibição de data cai um dia em qualquer processo no fuso do Brasil; número do saque na tela podia divergir do banco. |
 
 ## Padrão de código dos módulos
 
@@ -49,12 +50,15 @@ Estabelecido no Módulo 1, os outros devem repetir:
 3. **Componente cliente** com atualização otimista
 4. **Página servidor** que junta tudo
 
+## Regras que não se quebra (atualizado 04/08)
+
+- Exibir um campo `@db.Date`? Use `diaCurto()` (ou `dataPorExtenso`/`hojeNoFuso` com fuso explícito) de `src/lib/datas.ts`. **Nunca** `Intl.DateTimeFormat` sem `timeZone` — sem isso, qualquer processo rodando no fuso do Brasil (ou qualquer fuso atrás de UTC) mostra a data um dia antes.
+- Componente cliente que reage a uma server action com `revalidatePath`: se a mensagem de sucesso mostra um valor que a própria ação altera (contador, número sequencial), capture esse valor em estado local **no início** do fluxo — não leia a prop no fim, ela pode já ter mudado.
+
 ## Onde parou
 
-Fundação 100%. **Módulo 1: 100% na web** (falta o acesso pelo Telegram). Demais módulos: 0%.
+Fundação 100%. **Módulos 1 e 5: 100% na web** (falta o acesso pelo Telegram nos dois). Módulos 2, 3, 4: 0%.
 
-**Próximo passo sugerido:** **Módulo 5 (Contas Apex)** — é o de maior valor e **não depende de chave nenhuma**, já que o motor de cálculo está pronto desde 03/08. Falta a tela e o cadastro de conta/pregão.
-
-**Bloqueios:** Módulo 2 precisa de `ANTHROPIC_API_KEY` + `GROQ_API_KEY`; o bot precisa do `TELEGRAM_BOT_TOKEN`.
+**Próximo passo:** todos os módulos que restam dependem de chave. Precisa de `ANTHROPIC_API_KEY` + `GROQ_API_KEY` (Módulo 2) e `TELEGRAM_BOT_TOKEN` (bot) pra continuar.
 
 **Pendência de dado:** os números de drawdown da Apex 25K e 50K não fecham com o Safety Net informado — Marcelo vai conferir no dashboard dele. Correção é editar `prisma/seed.ts` e rodar `npm run db:seed`.
