@@ -8,7 +8,7 @@ Assistente particular via Telegram (texto e áudio) + dashboard PWA. Cinco módu
 
 Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deploy planejado: Vercel (app) + Railway (agendador de cron).
 
-**Status:** fundação 100%. **Módulos 1 (Tarefas), 2 (Compromissos) e 5 (Contas Apex) prontos na web.** Módulos 3, 4: 0%. Rodando em `localhost:3000`. Repo: `github.com/Marcelo210598/socrates`.
+**Status:** fundação 100%. **Módulos 1 (Tarefas), 2 (Compromissos) e 5 (Contas Apex) prontos e EM PRODUÇÃO.** Módulos 3, 4: 0%. App no ar: **https://socrates-opal-two.vercel.app**. Repo: `github.com/Marcelo210598/socrates`.
 
 ## ✅ Concluído
 
@@ -92,9 +92,17 @@ Pela mecânica da Apex, `Safety Net = saldoInicial + drawdown + 100`:
 
 **Faltando:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CRON_SECRET`.
 
-## 🐙 Git remoto
+## 🐙 Git remoto e deploy
 
 `github.com/Marcelo210598/socrates` — configurado como `origin` (04/08). Repo criado vazio pelo Marcelo.
+
+**Vercel:** projeto `socrates` na org `marcelo-di-foggia-juniors-projects`, importado do GitHub. App em produção: https://socrates-opal-two.vercel.app
+
+Dois problemas do projeto novo, corrigidos:
+1. `ssoProtection` vinha ligado por padrão (bloqueava tudo, até o domínio `.vercel.app` padrão) — desligado via API direta (a ferramenta MCP da Vercel não tem permissão de escrita, deu 403; usei o token do CLI logado em `~/Library/Application Support/com.vercel.cli/auth.json`)
+2. `framework: null` — projeto não reconhecido como Next.js, causava 404 na borda sem nenhum log de runtime. Corrigido com `PATCH .../projects/{id} {"framework":"nextjs"}`, mesmo esquema de token.
+
+**Checklist pra qualquer projeto novo na Vercel:** conferir esses dois campos antes de considerar o deploy "pronto".
 
 ## 📋 Próximos passos
 

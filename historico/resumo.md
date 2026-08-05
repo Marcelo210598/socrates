@@ -41,6 +41,7 @@ IA = **Claude API**. Transcrição de áudio = **Groq Whisper** (a Claude API n�
 | [04/08/2026](2026-08-04.md) | **Módulo 1 (Tarefas rotineiras) pronto na web** e validado no navegador: criar, marcar, arquivar, recorrência, atraso automático, barra de progresso. |
 | [04/08/2026 parte 2](2026-08-04-parte2.md) | **Módulo 5 (Contas Apex) pronto na web** e validado ponta a ponta (criou conta, lançou 5 pregões, consistência bloqueou e depois liberou, saque registrado). Achou e corrigiu 2 bugs reais: exibição de data cai um dia em qualquer processo no fuso do Brasil; número do saque na tela podia divergir do banco. |
 | [04/08/2026 parte 3](2026-08-04-parte3.md) | Chaves reais da Anthropic e Groq recebidas. **Módulo 2 (Compromissos) pronto na web**, com texto E áudio de verdade — testado com voz sintética real via Groq + Claude, "amanhã às três da tarde" resolvido certo. Repo conectado a `github.com/Marcelo210598/socrates`. |
+| [04/08/2026 parte 4](2026-08-04-parte4.md) | **Primeiro deploy em produção.** Achei e corrigi 2 problemas do projeto novo na Vercel: SSO ligado bloqueando tudo, e `framework: null` causando 404 silencioso (sem log nenhum). App no ar: **https://socrates-opal-two.vercel.app**. |
 
 ## Padrão de código dos módulos
 
@@ -58,10 +59,14 @@ Estabelecido no Módulo 1, os outros devem repetir:
 
 ## Onde parou
 
-Fundação 100%. **Módulos 1, 2 e 5: 100% na web** (falta o acesso pelo Telegram nos três). Módulos 3, 4: 0%.
+Fundação 100%. **Módulos 1, 2 e 5: 100% na web, e em PRODUÇÃO** (falta o acesso pelo Telegram nos três). Módulos 3, 4: 0%.
+
+**App no ar:** https://socrates-opal-two.vercel.app
 
 **Próximo passo:** Módulo 3 (Motivacional) não depende de chave nova — já tem tudo que precisa (tarefas, compromissos, banco de frases). Módulo 4 (Briefing) e o bot do Telegram ainda dependem de decisões/chaves.
 
-**Repo no GitHub:** `github.com/Marcelo210598/socrates`, remoto `origin` já configurado.
+**Repo no GitHub:** `github.com/Marcelo210598/socrates`, remoto `origin` configurado, deploy automatizado por `vercel deploy --prod`.
+
+**Checklist pra projeto novo na Vercel** (mordeu a gente uma vez): conferir `ssoProtection` desligado e `framework: "nextjs"` definido — os dois causam 404 silencioso sem log nenhum.
 
 **Pendência de dado:** os números de drawdown da Apex 25K e 50K não fecham com o Safety Net informado — Marcelo vai conferir no dashboard dele. Correção é editar `prisma/seed.ts` e rodar `npm run db:seed`.
