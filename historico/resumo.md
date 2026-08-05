@@ -63,7 +63,15 @@ Fundação 100%. **Módulos 1, 2 e 5: 100% na web, e em PRODUÇÃO** (falta o ac
 
 **App no ar:** https://socrates-opal-two.vercel.app
 
-**Próximo passo:** Módulo 3 (Motivacional) não depende de chave nova — já tem tudo que precisa (tarefas, compromissos, banco de frases). Módulo 4 (Briefing) e o bot do Telegram ainda dependem de decisões/chaves.
+**Próximo passo (amanhã):** pra dar por FINALIZADO ainda falta:
+
+1. **Módulo 3 (Motivacional)** — não depende de chave nova, já tem tarefas + compromissos + banco de frases
+2. **Módulo 4 (Briefing)** — decidir fonte do calendário econômico (Forex Factory) e do candle de referência (Yahoo)
+3. **Bot do Telegram** — hoje tudo é só web; o canal principal que o Marcelo pediu ainda não existe. Precisa do `TELEGRAM_BOT_TOKEN` (@BotFather)
+4. **Login de verdade** (NextAuth + Google) — hoje roda com usuário fixo
+5. **Worker do Railway** — nada dispara sozinho ainda (nenhum alerta automático, nenhum cron)
+
+Isso é o que falta pro app virar "assistente que te procura" de verdade, não só um dashboard que você abre.
 
 **Repo no GitHub:** `github.com/Marcelo210598/socrates`, remoto `origin` configurado, deploy automatizado por `vercel deploy --prod`.
 
