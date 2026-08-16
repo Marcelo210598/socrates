@@ -42,6 +42,7 @@ IA = **Claude API**. Transcrição de áudio = **Groq Whisper** (a Claude API n�
 | [04/08/2026 parte 2](2026-08-04-parte2.md) | **Módulo 5 (Contas Apex) pronto na web** e validado ponta a ponta (criou conta, lançou 5 pregões, consistência bloqueou e depois liberou, saque registrado). Achou e corrigiu 2 bugs reais: exibição de data cai um dia em qualquer processo no fuso do Brasil; número do saque na tela podia divergir do banco. |
 | [04/08/2026 parte 3](2026-08-04-parte3.md) | Chaves reais da Anthropic e Groq recebidas. **Módulo 2 (Compromissos) pronto na web**, com texto E áudio de verdade — testado com voz sintética real via Groq + Claude, "amanhã às três da tarde" resolvido certo. Repo conectado a `github.com/Marcelo210598/socrates`. |
 | [04/08/2026 parte 4](2026-08-04-parte4.md) | **Primeiro deploy em produção.** Achei e corrigi 2 problemas do projeto novo na Vercel: SSO ligado bloqueando tudo, e `framework: null` causando 404 silencioso (sem log nenhum). App no ar: **https://socrates-opal-two.vercel.app**. |
+| [16/08/2026](2026-08-16.md) | **Bot do Telegram no ar de verdade.** Extrator único decide Tarefa vs Compromisso; cards de confirmação com botão; lembrete automático a cada 10min com frase (Módulo 3 nasceu aqui); mensagem motivacional diária 07:30 virando imagem via `next/og`; 2 Cron Jobs no Railway (configurados via API GraphQL, CLI não tem esse comando). Validado ponta a ponta em produção. |
 
 ## Padrão de código dos módulos
 
@@ -59,19 +60,18 @@ Estabelecido no Módulo 1, os outros devem repetir:
 
 ## Onde parou
 
-Fundação 100%. **Módulos 1, 2 e 5: 100% na web, e em PRODUÇÃO** (falta o acesso pelo Telegram nos três). Módulos 3, 4: 0%.
+Fundação 100%. **Módulos 1, 2, 3 e 5: 100%, em PRODUÇÃO, com bot do Telegram integrado de ponta a ponta** — criar, marcar, lembrar (a cada 10min) e reagendar tudo pelo chat, mensagem motivacional automática às 07:30. Módulo 4: 0%.
 
-**App no ar:** https://socrates-opal-two.vercel.app
+**App no ar:** https://socrates-opal-two.vercel.app · **Bot:** @Socratesassistentebot
 
-**Próximo passo (amanhã):** pra dar por FINALIZADO ainda falta:
+**Próximo passo:**
 
-1. **Módulo 3 (Motivacional)** — não depende de chave nova, já tem tarefas + compromissos + banco de frases
-2. **Módulo 4 (Briefing)** — decidir fonte do calendário econômico (Forex Factory) e do candle de referência (Yahoo)
-3. **Bot do Telegram** — hoje tudo é só web; o canal principal que o Marcelo pediu ainda não existe. Precisa do `TELEGRAM_BOT_TOKEN` (@BotFather)
-4. **Login de verdade** (NextAuth + Google) — hoje roda com usuário fixo
-5. **Worker do Railway** — nada dispara sozinho ainda (nenhum alerta automático, nenhum cron)
+1. **Módulo 4 (Briefing)** — decidir fonte do calendário econômico (Forex Factory) e do candle de referência (Yahoo)
+2. **Login de verdade** (NextAuth + Google) — hoje roda com usuário fixo; bloqueia vender o app pra outra pessoa
+3. Conferir os números de drawdown da Apex 25K/50K (pendência antiga, ver abaixo)
+4. Testar transcrição de áudio com um áudio real (só sintético até aqui)
 
-Isso é o que falta pro app virar "assistente que te procura" de verdade, não só um dashboard que você abre.
+O app já é "assistente que te procura" de verdade, não só um dashboard que você abre — rodando inteiro na nuvem (Vercel + Neon + Railway), sem depender do computador do Marcelo ligado.
 
 **Repo no GitHub:** `github.com/Marcelo210598/socrates`, remoto `origin` configurado, deploy automatizado por `vercel deploy --prod`.
 

@@ -1,14 +1,14 @@
 # Sócrates — Progresso
 
-## Última atualização: 04/08/2026
+## Última atualização: 16/08/2026
 
 ## 📌 Visão Geral
 
 Assistente particular via Telegram (texto e áudio) + dashboard PWA. Cinco módulos: tarefas rotineiras, compromissos avulsos, motivacional, briefing de trader (NQ/MNQ) e gestão de contas Apex.
 
-Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deploy planejado: Vercel (app) + Railway (agendador de cron).
+Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deploy: Vercel (app + webhook) + Railway (2 Cron Jobs, sem worker persistente).
 
-**Status:** fundação 100%. **Módulos 1 (Tarefas), 2 (Compromissos) e 5 (Contas Apex) prontos e EM PRODUÇÃO.** Módulos 3, 4: 0%. App no ar: **https://socrates-opal-two.vercel.app**. Repo: `github.com/Marcelo210598/socrates`.
+**Status:** fundação 100%. **Módulos 1 (Tarefas), 2 (Compromissos), 3 (Motivacional) e 5 (Contas Apex) prontos e EM PRODUÇÃO, com bot do Telegram integrado de ponta a ponta.** Módulo 4 (Briefing): 0%. App no ar: **https://socrates-opal-two.vercel.app**. Bot: **@Socratesassistentebot**. Repo: `github.com/Marcelo210598/socrates`.
 
 ## ✅ Concluído
 
@@ -59,9 +59,20 @@ Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deplo
 - **Validado com chamadas reais**: áudio sintético (`say` do macOS) → Groq transcreveu certo → Claude extraiu "amanhã às três da tarde" → `2026-08-05T15:00` correto; caso ambíguo disparou pergunta de volta no tom certo; fluxo completo testado no navegador e conferido no banco (fuso convertido certinho)
 - Gravação pelo microfone do navegador não foi possível automatizar (sem mic real no ambiente de teste) — mesma rota validada via curl com áudio real, mas vale um teste manual no celular/PC
 
+### Bot do Telegram + Módulo 3 (Motivacional) (16/08) ✅
+
+- `src/lib/ia/pendencia.ts` — extrator único: decide Tarefa (repete) vs Compromisso (pontual) numa chamada só
+- Webhook reescrito do zero: comandos (`/start /ajuda /tarefas /hoje /nova`), texto/áudio livre, cards de confirmação com botão, callback_query (toggle/pular/snooze/concluir/cancelar/reagendar)
+- `Rascunho` e `SessaoTelegram` (schema novo) — confirmação e memória curta de conversa
+- Lembrete automático a cada 10min (Módulo 3): tarefa/compromisso vencido repete com uma frase do banco até resolver
+- Mensagem motivacional diária 07:30 BRT: citação real via Claude → imagem 1080×1080 (`next/og`) → foto no Telegram
+- `worker/` (Railway, 2 Cron Jobs, sem processo persistente) chamando `/api/cron/lembretes` e `/api/cron/motivacional`
+- `/compromissos` repaginado: emoji, badge Hoje/Amanhã, "sem hora marcada"
+- Validado ponta a ponta em produção (não só localmente) — ver `historico/2026-08-16.md`
+
 ## 🚧 Em progresso
 
-- **Lista de comandos do bot apresentada, aguardando "pode ir" do Marcelo** (está detalhada em `historico/2026-08-03.md`)
+- Nenhuma pendência de decisão aberta no momento — próximo passo é o Módulo 4 (Briefing)
 
 ## ⚠️ Problemas encontrados
 
@@ -88,9 +99,11 @@ Pela mecânica da Apex, `Safety Net = saldoInicial + drawdown + 100`:
 
 ## 🔧 Configurações importantes
 
-`.env` (fora do git). Preenchido: `DATABASE_URL`, `DIRECT_URL` (Neon), **`ANTHROPIC_API_KEY`** e **`GROQ_API_KEY`** (chaves reais, testadas).
+`.env` (fora do git) e Vercel produção preenchidos: `DATABASE_URL`, `DIRECT_URL` (Neon), `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_OWNER_CHAT_ID` (`955995171`), `CRON_SECRET`.
 
-**Faltando:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CRON_SECRET`.
+**Faltando:** `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` (login ainda não implementado).
+
+**Railway** (projeto `socrates-worker`, workspace do Marcelo): 2 serviços — `socrates-worker` (cron `*/10 * * * *`, endpoint `/api/cron/lembretes`) e `socrates-motivacional` (cron `30 10 * * *` = 07:30 BRT, endpoint `/api/cron/motivacional`). Cron Schedule não tem comando na CLI — configurado via API GraphQL direta (`backboard.railway.com/graphql/v2`, mutation `serviceInstanceUpdate`).
 
 ## 🐙 Git remoto e deploy
 
@@ -106,12 +119,12 @@ Dois problemas do projeto novo, corrigidos:
 
 ## 📋 Próximos passos
 
-1. **Módulo 3** — Motivacional (não depende de chave nova; já tem tarefas, compromissos e banco de frases prontos)
-2. **Módulo 4** — Briefing (decidir fonte do calendário econômico e do candle de referência)
-3. Bot do Telegram → `TELEGRAM_BOT_TOKEN` (@BotFather)
-4. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário
-5. Testar a gravação de áudio pelo microfone de verdade (celular ou PC)
-6. Worker do Railway + deploy na Vercel
+1. **Módulo 4** — Briefing (decidir fonte do calendário econômico e do candle de referência)
+2. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário — bloqueia vender o app pra outra pessoa
+3. Conferir os números de drawdown da Apex 25K/50K (pendência antiga)
+4. Testar a transcrição de áudio com um áudio real (só sintético até aqui)
+5. Filtrar a frase do lembrete por contexto (hoje sorteia de qualquer categoria)
+6. Agendar `limparRascunhosAntigos()` (existe, não é chamada por nada ainda)
 
 ## 📚 Dependências principais
 
