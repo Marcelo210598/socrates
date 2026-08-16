@@ -1,0 +1,13 @@
+{
+  "name": "socrates-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bate no endpoint de cron do Sócrates (Vercel). Sem estado, sem dependências.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}

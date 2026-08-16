@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Recorrencia } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { obterUsuarioAtual } from "@/lib/auth/usuario";
-import { definirFeita } from "@/lib/tarefas";
+import { criarTarefaAtiva, definirFeita } from "@/lib/tarefas";
 import { hojeNoFuso } from "@/lib/datas";
 
 export type ResultadoAcao = { ok: true } | { ok: false; erro: string };
@@ -65,22 +65,13 @@ export async function criarTarefa(entrada: NovaTarefa): Promise<ResultadoAcao> {
   try {
     const usuario = await obterUsuarioAtual();
 
-    // Nova tarefa entra no fim da lista.
-    const agregado = await prisma.tarefa.aggregate({
-      where: { userId: usuario.id },
-      _max: { ordem: true },
-    });
-
-    await prisma.tarefa.create({
-      data: {
-        userId: usuario.id,
-        titulo: dados.titulo,
-        recorrencia: dados.recorrencia,
-        diasSemana: dados.recorrencia === Recorrencia.DIAS_SEMANA ? dados.diasSemana : [],
-        diaDoMes: dados.recorrencia === Recorrencia.MENSAL ? dados.diaDoMes : null,
-        horaAlvo: dados.horaAlvo,
-        ordem: (agregado._max.ordem ?? 0) + 1,
-      },
+    await criarTarefaAtiva({
+      userId: usuario.id,
+      titulo: dados.titulo,
+      recorrencia: dados.recorrencia,
+      diasSemana: dados.diasSemana,
+      diaDoMes: dados.diaDoMes,
+      horaAlvo: dados.horaAlvo,
     });
 
     revalidatePath("/tarefas");

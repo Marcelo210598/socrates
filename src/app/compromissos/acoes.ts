@@ -5,7 +5,7 @@ import { z } from "zod";
 import { OrigemEntrada, StatusCompromisso } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { obterUsuarioAtual } from "@/lib/auth/usuario";
-import { horaLocalParaUtc } from "@/lib/datas";
+import { criarCompromissoConfirmado } from "@/lib/compromissos";
 
 export type ResultadoAcao = { ok: true } | { ok: false; erro: string };
 
@@ -42,22 +42,16 @@ export async function confirmarCompromissoAction(
   try {
     const usuario = await obterUsuarioAtual();
 
-    // Sem horário mencionado, assume 09:00 — melhor um alerta na hora errada
-    // do que nenhum alerta.
-    const quando = horaLocalParaUtc(dados.data, dados.hora ?? "09:00", usuario.timezone);
-
-    await prisma.compromisso.create({
-      data: {
-        userId: usuario.id,
-        titulo: dados.titulo,
-        quando,
-        local: dados.local || null,
-        status: StatusCompromisso.CONFIRMADO,
-        origem: dados.origem,
-        textoOriginal: dados.textoOriginal || null,
-        transcricao: dados.transcricao || null,
-        confiancaIa: dados.confiancaIa ?? null,
-      },
+    await criarCompromissoConfirmado({
+      userId: usuario.id,
+      titulo: dados.titulo,
+      data: dados.data,
+      hora: dados.hora,
+      local: dados.local,
+      origem: dados.origem,
+      textoOriginal: dados.textoOriginal,
+      transcricao: dados.transcricao,
+      confiancaIa: dados.confiancaIa,
     });
 
     revalidatePath("/compromissos");

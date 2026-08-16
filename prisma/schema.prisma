@@ -43,6 +43,9 @@ model User {
   saques          SaqueApex[]
   briefings       Briefing[]
   mensagens       MensagemLog[]
+  rascunhos       Rascunho[]
+  sessaoTelegram  SessaoTelegram?
+  motivacionais   MensagemMotivacional[]
 
   @@map("usuarios")
 }
@@ -154,8 +157,13 @@ model TarefaExecucao {
   data     DateTime  @db.Date
   feita    Boolean   @default(false)
   feitaEm  DateTime?
+  /// Pulou esta ocorrência (não conta como atraso nem repete lembrete hoje).
+  pulada   Boolean   @default(false)
   /// Marca que o Módulo 3 já cobrou este dia (evita cobrar duas vezes).
   cobradaEm DateTime?
+  /// Próximo horário em que o lembrete do Telegram deve repetir (a cada 10min,
+  /// ou adiado manualmente com o botão "+1h"). Null = nunca lembrado ainda.
+  proximoLembreteEm DateTime?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tarefa Tarefa @relation(fields: [tarefaId], references: [id], onDelete: Cascade)
@@ -192,6 +200,10 @@ model Compromisso {
   titulo String
   /// Momento do compromisso, sempre gravado em UTC.
   quando DateTime
+  /// false = você não deu hora ("revisar o PDF hoje"); `quando` nesse caso
+  /// carrega o horário de fechamento do dia (`Preferencia.horaFechamentoDia`)
+  /// só pra ordenar/lembrar — a UI não deve exibir essa hora como se fosse real.
+  horaDefinida Boolean @default(true)
   local  String?
   notas  String?
 
@@ -215,6 +227,66 @@ model Compromisso {
   @@index([userId, quando])
   @@index([status, quando])
   @@map("compromissos")
+}
+
+// ============================================================
+// TELEGRAM — entrada de linguagem natural e memória curta de conversa
+// ============================================================
+
+enum TipoRascunho {
+  TAREFA
+  COMPROMISSO
+}
+
+/// O que a IA extraiu do texto/áudio, esperando seu ✅ no Telegram antes de
+/// virar Tarefa ou Compromisso de verdade. Vive pouco tempo (confirma ou descarta).
+model Rascunho {
+  id       String       @id @default(cuid())
+  userId   String
+  tipo     TipoRascunho
+  /// Formato depende de `tipo` — ver `RascunhoTarefaDados` / `RascunhoCompromissoDados` em código.
+  dados    Json
+  criadoEm DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("rascunhos")
+}
+
+enum AguardandoSessao {
+  NENHUM
+  REAGENDAR_COMPROMISSO
+}
+
+/// Memória curta de 1 passo: "tô esperando sua próxima mensagem pra X".
+/// Um registro por usuário (não é histórico, é estado atual da conversa).
+model SessaoTelegram {
+  userId       String           @id
+  aguardando   AguardandoSessao @default(NENHUM)
+  /// Id do compromisso/tarefa que a resposta seguinte vai resolver.
+  refId        String?
+  atualizadoEm DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessoes_telegram")
+}
+
+/// Log das mensagens motivacionais de 07:00 (imagem pro Telegram/redes sociais)
+/// — evita repetir citação e serve de auditoria do que já foi enviado.
+model MensagemMotivacional {
+  id        String   @id @default(cuid())
+  userId    String
+  texto     String
+  autor     String?
+  tema      String?
+  enviadaEm DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, enviadaEm])
+  @@map("mensagens_motivacionais")
 }
 
 // ============================================================
