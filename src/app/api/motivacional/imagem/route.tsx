@@ -127,6 +127,19 @@ export async function POST(req: Request) {
           {autor || "Anônimo"}
         </div>
 
+        <div
+          style={{
+            fontFamily: "Inter",
+            fontSize: "20px",
+            fontWeight: 600,
+            color: "rgba(199,161,90,0.75)",
+            marginTop: "8px",
+            display: "flex",
+          }}
+        >
+          @marcelo.devoficial
+        </div>
+
         {tema && (
           <div
             style={{
