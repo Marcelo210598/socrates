@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { OrigemEntrada, StatusCompromisso } from "@prisma/client";
+import { Importancia, OrigemEntrada, StatusCompromisso } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { obterUsuarioAtual } from "@/lib/auth/usuario";
 import { criarCompromissoConfirmado } from "@/lib/compromissos";
@@ -17,6 +17,7 @@ const esquemaConfirmar = z.object({
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Hora inválida.")
     .nullable(),
   local: z.string().trim().max(120).nullable().optional(),
+  importancia: z.enum([Importancia.BAIXA, Importancia.MEDIA, Importancia.ALTA]).optional(),
   origem: z.enum([
     OrigemEntrada.TELEGRAM_TEXTO,
     OrigemEntrada.TELEGRAM_AUDIO,
@@ -48,6 +49,7 @@ export async function confirmarCompromissoAction(
       data: dados.data,
       hora: dados.hora,
       local: dados.local,
+      importancia: dados.importancia,
       origem: dados.origem,
       textoOriginal: dados.textoOriginal,
       transcricao: dados.transcricao,

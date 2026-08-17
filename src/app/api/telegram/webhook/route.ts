@@ -52,6 +52,12 @@ function truncar(texto: string, max: number): string {
   return texto.length > max ? `${texto.slice(0, max - 1)}…` : texto;
 }
 
+const EMOJI_IMPORTANCIA: Record<"BAIXA" | "MEDIA" | "ALTA", string> = {
+  BAIXA: "🟢",
+  MEDIA: "🟡",
+  ALTA: "🔴",
+};
+
 /** Só o dono do bot conversa com ele — sem isso, qualquer um que ache o @bot vê suas tarefas. */
 function chatAutorizado(chatId: number): boolean {
   const dono = process.env.TELEGRAM_OWNER_CHAT_ID;
@@ -107,12 +113,14 @@ function cardRascunhoCompromisso(dados: DadosRascunhoCompromisso): string {
   const dataFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(
     new Date(`${dados.data}T00:00:00`),
   );
+  const importancia = dados.importancia ?? "MEDIA";
   return [
     "📌 <b>Novo compromisso</b>",
     "",
     `<b>${dados.titulo}</b>`,
     `${dataFmt}${dados.hora ? ` · ${dados.hora}` : " · sem hora marcada"}`,
     dados.local ? `📍 ${dados.local}` : "",
+    `${EMOJI_IMPORTANCIA[importancia]} Importância ${importancia === "ALTA" ? "alta" : importancia === "BAIXA" ? "baixa" : "média"}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -141,37 +149,53 @@ async function enviarListaTarefas(usuario: { id: string; timezone: string }, cha
   });
 }
 
-async function enviarResumoDoDia(usuario: { id: string; timezone: string }, chatId: number): Promise<void> {
-  const hoje = hojeNoFuso(usuario.timezone);
+/** Usado tanto pelo /hoje quanto pela consulta em texto livre ("quais meus compromissos hoje?"). */
+async function enviarResumoDoDia(
+  usuario: { id: string; timezone: string },
+  chatId: number,
+  opcoes: { alvo?: "tarefas" | "compromissos" | "tudo"; dia?: "hoje" | "amanha" } = {},
+): Promise<void> {
+  const { alvo = "tudo", dia = "hoje" } = opcoes;
+  const agoraRef = dia === "amanha" ? new Date(Date.now() + 24 * 60 * 60 * 1000) : new Date();
+  const data = hojeNoFuso(usuario.timezone, agoraRef);
+
+  const querTarefas = alvo === "tarefas" || alvo === "tudo";
+  const querCompromissos = alvo === "compromissos" || alvo === "tudo";
+
   const [tarefas, compromissos] = await Promise.all([
-    listarTarefasDoDia({ userId: usuario.id, data: hoje, agoraEmMinutos: minutosDoDia(usuario.timezone) }),
-    listarCompromissosDoDia(usuario.id, usuario.timezone),
+    querTarefas
+      ? listarTarefasDoDia({ userId: usuario.id, data, agoraEmMinutos: minutosDoDia(usuario.timezone, agoraRef) })
+      : Promise.resolve([]),
+    querCompromissos ? listarCompromissosDoDia(usuario.id, usuario.timezone, agoraRef) : Promise.resolve([]),
   ]);
 
-  const linhas: string[] = ["📅 <b>Hoje</b>", ""];
+  const linhas: string[] = [`📅 <b>${dia === "amanha" ? "Amanhã" : "Hoje"}</b>`, ""];
 
-  if (tarefas.length === 0) {
-    linhas.push("🔁 Nenhuma tarefa rotineira.");
-  } else {
-    linhas.push("🔁 <b>Tarefas</b>");
-    for (const t of tarefas) {
-      linhas.push(`${t.feita ? "✅" : t.atrasada ? "🔴" : "⬜"} ${t.titulo}${t.horaAlvo ? ` · ${t.horaAlvo}` : ""}`);
+  if (querTarefas) {
+    if (tarefas.length === 0) {
+      linhas.push("🔁 Nenhuma tarefa rotineira.");
+    } else {
+      linhas.push("🔁 <b>Tarefas</b>");
+      for (const t of tarefas) {
+        linhas.push(`${t.feita ? "✅" : t.atrasada ? "🔴" : "⬜"} ${t.titulo}${t.horaAlvo ? ` · ${t.horaAlvo}` : ""}`);
+      }
     }
+    if (querCompromissos) linhas.push("");
   }
 
-  linhas.push("");
-
-  if (compromissos.length === 0) {
-    linhas.push("📌 Nenhum compromisso.");
-  } else {
-    linhas.push("📌 <b>Compromissos</b>");
-    for (const c of compromissos) {
-      const hora = c.horaDefinida
-        ? new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: usuario.timezone }).format(
-            c.quando,
-          )
-        : "sem hora";
-      linhas.push(`• ${c.titulo} · ${hora}`);
+  if (querCompromissos) {
+    if (compromissos.length === 0) {
+      linhas.push("📌 Nenhum compromisso.");
+    } else {
+      linhas.push("📌 <b>Compromissos</b>");
+      for (const c of compromissos) {
+        const hora = c.horaDefinida
+          ? new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: usuario.timezone }).format(
+              c.quando,
+            )
+          : "sem hora";
+        linhas.push(`${EMOJI_IMPORTANCIA[c.importancia]} ${c.titulo} · ${hora}`);
+      }
     }
   }
 
@@ -207,6 +231,7 @@ async function confirmarRascunho(usuario: { id: string; timezone: string }, rasc
     data: d.data,
     hora: d.hora,
     local: d.local,
+    importancia: d.importancia,
     origem: OrigemEntrada.TELEGRAM_TEXTO,
     confiancaIa: d.confianca,
   });
@@ -358,6 +383,11 @@ async function tratarMensagemLivre(usuario: { id: string; timezone: string }, ch
 
   if (extracao.ambiguo) {
     await enviarMensagem(chatId, extracao.pergunta ?? "Não peguei direito — manda de novo com mais detalhes?");
+    return;
+  }
+
+  if (extracao.tipo === "consulta") {
+    await enviarResumoDoDia(usuario, chatId, { alvo: extracao.alvo, dia: extracao.dia });
     return;
   }
 

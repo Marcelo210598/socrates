@@ -193,6 +193,15 @@ enum OrigemEntrada {
   WEB
 }
 
+/// Grau de importância do compromisso — você define ao salvar (ou a IA
+/// detecta pelo texto, ex.: "isso é importante"). Default MEDIA quando não
+/// foi dito nada.
+enum Importancia {
+  BAIXA
+  MEDIA
+  ALTA
+}
+
 model Compromisso {
   id     String @id @default(cuid())
   userId String
@@ -206,6 +215,7 @@ model Compromisso {
   horaDefinida Boolean @default(true)
   local  String?
   notas  String?
+  importancia Importancia @default(MEDIA)
 
   status StatusCompromisso @default(AGUARDANDO_CONFIRMACAO)
   origem OrigemEntrada     @default(TELEGRAM_TEXTO)

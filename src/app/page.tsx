@@ -42,14 +42,8 @@ const MODULOS: Modulo[] = [
     classeIcone: "bg-marca/15 text-marca",
     classeHover: "hover:border-marca/50",
   },
-  {
-    href: "/mercado",
-    nome: "Briefing do dia",
-    resumo: "NQ/MNQ e agenda antes do pregão",
-    icone: "↗",
-    classeIcone: "bg-atencao/15 text-atencao",
-    classeHover: "hover:border-atencao/50",
-  },
+  // Briefing do dia (Módulo 4) removido daqui até existir de verdade —
+  // apontava pra /mercado, que não existe ainda, e dava 404.
   {
     href: "/apex",
     nome: "Contas Apex",

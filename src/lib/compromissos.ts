@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { OrigemEntrada, StatusCompromisso, type Compromisso } from "@prisma/client";
+import { Importancia, OrigemEntrada, StatusCompromisso, type Compromisso } from "@prisma/client";
 import { dataParaInput, hojeNoFuso, horaLocalParaUtc } from "@/lib/datas";
 
 /**
@@ -14,12 +14,15 @@ export async function criarCompromissoConfirmado(params: {
   data: string; // "YYYY-MM-DD"
   hora: string | null;
   local?: string | null;
+  /** Não informado (undefined/null) = MEDIA, o padrão do schema. */
+  importancia?: Importancia | null;
   origem: OrigemEntrada;
   textoOriginal?: string | null;
   transcricao?: string | null;
   confiancaIa?: number | null;
 }): Promise<Compromisso> {
-  const { userId, titulo, data, hora, local, origem, textoOriginal, transcricao, confiancaIa } = params;
+  const { userId, titulo, data, hora, local, importancia, origem, textoOriginal, transcricao, confiancaIa } =
+    params;
 
   const usuario = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
@@ -37,6 +40,7 @@ export async function criarCompromissoConfirmado(params: {
       quando,
       horaDefinida,
       local: local || null,
+      importancia: importancia ?? Importancia.MEDIA,
       status: StatusCompromisso.CONFIRMADO,
       origem,
       textoOriginal: textoOriginal || null,

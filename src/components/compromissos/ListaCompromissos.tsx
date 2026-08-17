@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import type { Importancia } from "@prisma/client";
 import { concluirCompromissoAction, cancelarCompromissoAction } from "@/app/compromissos/acoes";
 
 type CompromissoItem = {
@@ -9,6 +10,13 @@ type CompromissoItem = {
   quando: Date;
   horaDefinida: boolean;
   local: string | null;
+  importancia: Importancia;
+};
+
+const EMOJI_IMPORTANCIA: Record<Importancia, string> = {
+  BAIXA: "🟢",
+  MEDIA: "🟡",
+  ALTA: "🔴",
 };
 
 type Acao = { id: string; tipo: "concluir" | "cancelar" };
@@ -99,7 +107,10 @@ export function ListaCompromissos({
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{c.titulo}</p>
+                <p className="truncate font-medium">
+                  <span title={`Importância: ${c.importancia.toLowerCase()}`}>{EMOJI_IMPORTANCIA[c.importancia]}</span>{" "}
+                  {c.titulo}
+                </p>
                 <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-texto-fraco">
                   <span className={dia.destaque ? "font-semibold text-marca" : ""}>{dia.texto}</span>
                   <span className="inline-flex items-center gap-1">

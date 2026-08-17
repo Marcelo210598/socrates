@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { OrigemEntrada } from "@prisma/client";
+import { Importancia, OrigemEntrada } from "@prisma/client";
 import { confirmarCompromissoAction } from "@/app/compromissos/acoes";
 import { dataParaInput, hojeNoFuso } from "@/lib/datas";
 
@@ -10,6 +10,7 @@ type Draft = {
   data: string; // "" se a IA não soube dizer
   hora: string; // "" se não foi mencionado
   local: string;
+  importancia: Importancia;
   ambiguo: boolean;
   pergunta: string | null;
   textoOriginal: string | null;
@@ -73,6 +74,7 @@ export function NovoCompromisso({ fuso }: { fuso: string }) {
         data: json.draft.data ?? dataParaInput(hojeNoFuso(fuso)),
         hora: json.draft.hora ?? "",
         local: json.draft.local ?? "",
+        importancia: Importancia.MEDIA,
         ambiguo: json.draft.ambiguo,
         pergunta: json.draft.pergunta,
         textoOriginal: json.texto,
@@ -141,6 +143,7 @@ export function NovoCompromisso({ fuso }: { fuso: string }) {
         // Só o bot do Telegram grava TELEGRAM_TEXTO/TELEGRAM_AUDIO; aqui é sempre WEB,
         // com ou sem áudio (a transcrição fica registrada em `transcricao` de qualquer jeito).
         origem: OrigemEntrada.WEB,
+        importancia: draft.importancia,
         textoOriginal: draft.textoOriginal,
         transcricao: draft.transcricao,
       });
@@ -220,6 +223,22 @@ export function NovoCompromisso({ fuso }: { fuso: string }) {
             onChange={(e) => setDraft({ ...draft, local: e.target.value })}
             className="w-full rounded-xl border border-borda bg-fundo px-3.5 py-2.5 outline-none focus:border-marca"
           />
+        </div>
+
+        <div>
+          <label htmlFor="nc-importancia" className="mb-1.5 block text-sm font-medium">
+            Importância
+          </label>
+          <select
+            id="nc-importancia"
+            value={draft.importancia}
+            onChange={(e) => setDraft({ ...draft, importancia: e.target.value as Importancia })}
+            className="rounded-xl border border-borda bg-fundo px-3.5 py-2.5 outline-none focus:border-marca"
+          >
+            <option value={Importancia.BAIXA}>🟢 Baixa</option>
+            <option value={Importancia.MEDIA}>🟡 Média</option>
+            <option value={Importancia.ALTA}>🔴 Alta</option>
+          </select>
         </div>
 
         {erro && <p className="text-sm text-negativo">{erro}</p>}
