@@ -32,12 +32,8 @@ export function BarraTopo() {
             >
               Apex
             </Link>
-            <Link
-              href="/mercado"
-              className="rounded-lg px-3 py-1.5 text-sm text-texto-fraco transition-colors hover:bg-superficie hover:text-texto"
-            >
-              Mercado
-            </Link>
+            {/* "Mercado" (Módulo 4 — Briefing) removido daqui até existir de verdade —
+                apontava pra /mercado, que não existe ainda, e dava 404. */}
           </nav>
 
           <span
