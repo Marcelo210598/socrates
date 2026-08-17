@@ -20,8 +20,8 @@ function autorizado(req: Request): boolean {
   return Boolean(process.env.CRON_SECRET) && segredo === process.env.CRON_SECRET;
 }
 
-async function legendaComFrase(userId: string): Promise<string> {
-  const frase = await sortearFrase(userId);
+async function legendaComFrase(userId: string, contexto: string): Promise<string> {
+  const frase = await sortearFrase(userId, contexto);
   if (!frase) return "";
   return `\n\n💬 <i>${frase.texto}</i>${frase.autor ? ` — ${frase.autor}` : ""}`;
 }
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     });
 
     for (const t of tarefas) {
-      const legenda = await legendaComFrase(usuario.id);
+      const legenda = await legendaComFrase(usuario.id, t.titulo);
       await enviarMensagem(
         chatId,
         `🔴 <b>${t.titulo}</b>\n${t.descricaoRecorrencia}\n\nAinda não marcou hoje.${legenda}`,
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     const compromissos = await listarCompromissosParaLembrete({ userId: usuario.id, agora });
 
     for (const c of compromissos) {
-      const legenda = await legendaComFrase(usuario.id);
+      const legenda = await legendaComFrase(usuario.id, c.titulo);
       await enviarMensagem(chatId, `🔴 <b>${c.titulo}</b>\n${c.local ? `📍 ${c.local}\n` : ""}Passou da hora.${legenda}`, {
         botoes: [
           [
