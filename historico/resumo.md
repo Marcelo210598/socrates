@@ -43,6 +43,7 @@ IA = **Claude API**. Transcrição de áudio = **Groq Whisper** (a Claude API n�
 | [04/08/2026 parte 3](2026-08-04-parte3.md) | Chaves reais da Anthropic e Groq recebidas. **Módulo 2 (Compromissos) pronto na web**, com texto E áudio de verdade — testado com voz sintética real via Groq + Claude, "amanhã às três da tarde" resolvido certo. Repo conectado a `github.com/Marcelo210598/socrates`. |
 | [04/08/2026 parte 4](2026-08-04-parte4.md) | **Primeiro deploy em produção.** Achei e corrigi 2 problemas do projeto novo na Vercel: SSO ligado bloqueando tudo, e `framework: null` causando 404 silencioso (sem log nenhum). App no ar: **https://socrates-opal-two.vercel.app**. |
 | [16/08/2026](2026-08-16.md) | **Bot do Telegram no ar de verdade.** Extrator único decide Tarefa vs Compromisso; cards de confirmação com botão; lembrete automático a cada 10min com frase (Módulo 3 nasceu aqui); mensagem motivacional diária 07:30 virando imagem via `next/og`; 2 Cron Jobs no Railway (configurados via API GraphQL, CLI não tem esse comando). Validado ponta a ponta em produção. |
+| [17/08/2026](2026-08-17.md) | **Sessão de polimento** (Marcelo decidiu: usar bastante antes de monetizar). Consulta de compromissos/tarefas por texto/áudio livre; grau de importância (BAIXA/MEDIA/ALTA) nos compromissos; frase do lembrete filtrada por contexto (trading vs geral); corrigido 404 do "Briefing" (2 links removidos, módulo segue 0% por decisão consciente); achado e corrigido bug de infra — função Vercel rodava nos EUA longe do banco em São Paulo, latência caiu de ~600-2000ms pra ~10ms. |
 
 ## Padrão de código dos módulos
 
@@ -60,16 +61,19 @@ Estabelecido no Módulo 1, os outros devem repetir:
 
 ## Onde parou
 
-Fundação 100%. **Módulos 1, 2, 3 e 5: 100%, em PRODUÇÃO, com bot do Telegram integrado de ponta a ponta** — criar, marcar, lembrar (a cada 10min) e reagendar tudo pelo chat, mensagem motivacional automática às 07:30. Módulo 4: 0%.
+Fundação 100%. **Módulos 1, 2, 3 e 5: 100%, em PRODUÇÃO, com bot do Telegram integrado de ponta a ponta** — criar, marcar, lembrar (a cada 10min) e reagendar tudo pelo chat, mensagem motivacional automática às 07:30, consulta por texto/áudio livre, importância nos compromissos. Módulo 4: 0% (decisão consciente do Marcelo — quer usar/polir o resto antes).
 
 **App no ar:** https://socrates-opal-two.vercel.app · **Bot:** @Socratesassistentebot
 
+**Marcelo foi explícito (17/08): não quer focar em monetizar agora.** Quer usar bastante o Sócrates no dia a dia e deixá-lo "muito bom" primeiro — isso baixa a urgência do login (só era prioridade por travar venda).
+
 **Próximo passo:**
 
-1. **Módulo 4 (Briefing)** — decidir fonte do calendário econômico (Forex Factory) e do candle de referência (Yahoo)
-2. **Login de verdade** (NextAuth + Google) — hoje roda com usuário fixo; bloqueia vender o app pra outra pessoa
-3. Conferir os números de drawdown da Apex 25K/50K (pendência antiga, ver abaixo)
-4. Testar transcrição de áudio com um áudio real (só sintético até aqui)
+1. Conferir os números de drawdown da Apex 25K/50K (pendência antiga, ver abaixo)
+2. Corrigir a data do compromisso do PROCON (virou 31/08 em vez de 31/07) e checar se a IA tem viés de empurrar data passada pra frente
+3. Agendar `limparRascunhosAntigos()` em algum lugar (existe, não está chamada por nada ainda)
+4. Login de verdade (NextAuth + Google) — quando fizer sentido monetizar
+5. Módulo 4 (Briefing) — por último, por escolha do Marcelo
 
 O app já é "assistente que te procura" de verdade, não só um dashboard que você abre — rodando inteiro na nuvem (Vercel + Neon + Railway), sem depender do computador do Marcelo ligado.
 

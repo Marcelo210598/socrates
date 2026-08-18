@@ -1,14 +1,14 @@
 # Sócrates — Progresso
 
-## Última atualização: 16/08/2026
+## Última atualização: 17/08/2026
 
 ## 📌 Visão Geral
 
 Assistente particular via Telegram (texto e áudio) + dashboard PWA. Cinco módulos: tarefas rotineiras, compromissos avulsos, motivacional, briefing de trader (NQ/MNQ) e gestão de contas Apex.
 
-Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deploy: Vercel (app + webhook) + Railway (2 Cron Jobs, sem worker persistente).
+Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deploy: Vercel (app + webhook, função fixada em `gru1`/São Paulo) + Railway (2 Cron Jobs, sem worker persistente).
 
-**Status:** fundação 100%. **Módulos 1 (Tarefas), 2 (Compromissos), 3 (Motivacional) e 5 (Contas Apex) prontos e EM PRODUÇÃO, com bot do Telegram integrado de ponta a ponta.** Módulo 4 (Briefing): 0%. App no ar: **https://socrates-opal-two.vercel.app**. Bot: **@Socratesassistentebot**. Repo: `github.com/Marcelo210598/socrates`.
+**Status:** fundação 100%. **Módulos 1 (Tarefas), 2 (Compromissos), 3 (Motivacional) e 5 (Contas Apex) prontos e EM PRODUÇÃO, com bot do Telegram integrado de ponta a ponta** — incluindo consulta por texto/áudio livre e importância nos compromissos. Módulo 4 (Briefing): 0%, deixado por último por decisão do Marcelo (foco é usar e polir, não monetizar por enquanto). App no ar: **https://socrates-opal-two.vercel.app**. Bot: **@Socratesassistentebot**. Repo: `github.com/Marcelo210598/socrates`.
 
 ## ✅ Concluído
 
@@ -70,9 +70,18 @@ Stack: Next.js 16.3 + TypeScript + Tailwind v4 + Prisma + Neon PostgreSQL. Deplo
 - `/compromissos` repaginado: emoji, badge Hoje/Amanhã, "sem hora marcada"
 - Validado ponta a ponta em produção (não só localmente) — ver `historico/2026-08-16.md`
 
+### Sessão de polimento (17/08) ✅
+
+- **Consulta por texto/áudio livre** — `extrairPendencia` ganhou tipo `consulta` (`alvo`: tarefas/compromissos/tudo, `dia`: hoje/amanhã). Antes, perguntar "quais meus compromissos de hoje?" tentava abrir um rascunho de criação em vez de responder
+- **Importância nos compromissos** — enum `Importancia` (BAIXA/MEDIA/ALTA, default MEDIA), extraída pela IA quando mencionada ("isso é importante" → ALTA), exibida com 🔴🟡🟢 no bot/`/hoje`/web, seletor manual no formulário
+- **Frase do lembrete por contexto** — `sortearFrase(userId, contexto)` prioriza categoria TRADING pra títulos com palavra-chave de trading, senão sorteia BIBLICA/PENSADOR
+- **Fix de infra**: função Vercel rodava em `iad1` (EUA), banco em `sa-east-1` (Brasil) — `vercel.json` com `regions: ["gru1"]` derrubou a latência de banco de ~600-2000ms pra ~10ms
+- **404 do "Briefing" resolvido** — removidos os 2 links pra `/mercado` (home + barra de topo); módulo segue 0%, não implementado ainda (decisão consciente)
+- Detalhe completo em `historico/2026-08-17.md`
+
 ## 🚧 Em progresso
 
-- Nenhuma pendência de decisão aberta no momento — próximo passo é o Módulo 4 (Briefing)
+- Nenhuma pendência de decisão aberta no momento. Marcelo decidiu adiar monetização/Módulo 4 — foco agora é usar bastante e refinar o que já existe
 
 ## ⚠️ Problemas encontrados
 
@@ -119,12 +128,14 @@ Dois problemas do projeto novo, corrigidos:
 
 ## 📋 Próximos passos
 
-1. **Módulo 4** — Briefing (decidir fonte do calendário econômico e do candle de referência)
-2. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário — bloqueia vender o app pra outra pessoa
-3. Conferir os números de drawdown da Apex 25K/50K (pendência antiga)
-4. Testar a transcrição de áudio com um áudio real (só sintético até aqui)
-5. Filtrar a frase do lembrete por contexto (hoje sorteia de qualquer categoria)
-6. Agendar `limparRascunhosAntigos()` (existe, não é chamada por nada ainda)
+1. Conferir os números de drawdown da Apex 25K/50K (pendência antiga)
+2. Corrigir compromisso "Audiência PROCON" — foi salvo com data 31/08 em vez de 31/07 (a IA empurrou uma data passada pra frente); checar se é um padrão a corrigir na extração
+3. Agendar `limparRascunhosAntigos()` (existe, não é chamada por nada ainda)
+4. Considerar logar cliques de botão do Telegram (pular/feita/concluir) no `MensagemLog` — hoje só texto/áudio ficam registrados, dificultando debug de casos como "pulei e mesmo assim veio alerta"
+5. Login (NextAuth + Google) pra aposentar o `obterUsuarioAtual()` temporário — adiado, sem pressa (Marcelo não quer monetizar por enquanto)
+6. **Módulo 4** — Briefing (decidir fonte do calendário econômico e do candle de referência) — deixado por último por decisão do Marcelo
+
+~~Testar a transcrição de áudio com um áudio real~~ — ✅ feito 17/08, já tinha sido validado em 16/08 e confirmado de novo hoje (áudio real transcrito + classificado como consulta corretamente)
 
 ## 📚 Dependências principais
 
